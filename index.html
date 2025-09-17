@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌈 학급 긍정 일기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+        @font-face {
+            font-family: 'PyeongchangPeace';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/PyeongChangPeace-Light.woff2') format('woff2');
+            font-weight: 300;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'PyeongchangPeace';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/PyeongChangPeace-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-display: swap;
+        }
+
+        /* 'PyeongchangPeace' 폰트를 기본으로 사용하고, tailwindcss의 sans-serif를 fallback으로 설정 */
+        body {
+            font-family: 'PyeongchangPeace', sans-serif;
+        }
+        /* 날씨 아이콘 선택 시 스타일 */
+        .mood-icon.selected {
+            transform: scale(1.2);
+            border-color: #60a5fa; /* blue-400 */
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+        }
+        /* 그림판 캔버스 스타일 */
+        canvas {
+            touch-action: none; /* 모바일에서 스크롤 대신 그림 그리기가 되도록 설정 */
+        }
+        /* 커스텀 스크롤바 (선택사항, 디자인 통일성을 위해) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0f2fe; /* sky-100 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #93c5fd; /* blue-300 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #60a5fa; /* blue-400 */
+        }
+        /* 저장 완료 메시지 스타일 */
+        #save-toast {
+            transition: opacity 0.5s, transform 0.5s;
+        }
+    </style>
+</head>
+<body class="bg-sky-100/50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-6 md:p-8 space-y-6 border-2 border-sky-200">
+        
+        <!-- 헤더 -->
+        <header class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-500">🌈 학급 긍정 일기 📝</h1>
+            <p class="text-gray-500 mt-2">오늘 하루, 어떤 멋진 일이 있었나요?</p>
+        </header>
+
+        <!-- 일기 작성 폼 -->
+        <form id="diary-form" class="space-y-6">
+            
+            <!-- 학번, 이름, 날짜 섹션 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="student-info" class="block text-lg font-semibold text-gray-700 mb-1">🙋‍♀️ 학번과 이름</label>
+                    <input type="text" id="student-info" placeholder="예) 1학년 1반 1번 김긍정" required class="w-full p-3 border border-sky-200 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition">
+                </div>
+                <div>
+                    <label for="diary-date" class="block text-lg font-semibold text-gray-700 mb-1">🗓️ 오늘 날짜</label>
+                    <input type="date" id="diary-date" required class="w-full p-3 border border-sky-200 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition">
+                </div>
+            </div>
+
+            <!-- 오늘의 기분 섹션 -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-700 mb-2">☀️ 오늘의 기분은?</label>
+                <div id="mood-selector" class="flex justify-around items-center bg-sky-50 p-3 rounded-lg">
+                    <div class="mood-icon cursor-pointer text-4xl p-2 rounded-full border-4 border-transparent transition-transform duration-300" data-mood="☀️">☀️</div>
+                    <div class="mood-icon cursor-pointer text-4xl p-2 rounded-full border-4 border-transparent transition-transform duration-300" data-mood="☁️">☁️</div>
+                    <div class="mood-icon cursor-pointer text-4xl p-2 rounded-full border-4 border-transparent transition-transform duration-300" data-mood="🌧️">🌧️</div>
+                    <div class="mood-icon cursor-pointer text-4xl p-2 rounded-full border-4 border-transparent transition-transform duration-300" data-mood="⚡️">⚡️</div>
+                    <div class="mood-icon cursor-pointer text-4xl p-2 rounded-full border-4 border-transparent transition-transform duration-300" data-mood="❄️">❄️</div>
+                </div>
+            </div>
+
+            <!-- 일기 내용 섹션 -->
+            <div>
+                <label for="diary-content" class="block text-lg font-semibold text-gray-700 mb-1">✨ 긍정의 순간 기록하기</label>
+                <textarea id="diary-content" rows="6" placeholder="오늘 있었던 긍정적인 일, 감사한 일, 재미있었던 일을 자유롭게 적어보아요!" required class="w-full p-3 border border-sky-200 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition"></textarea>
+            </div>
+
+            <!-- 그림판 섹션 -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-700 mb-2">🎨 오늘의 기분을 그려봐요!</label>
+                <div class="border-2 border-sky-200 rounded-lg overflow-hidden">
+                    <div class="controls bg-sky-50 p-2 flex flex-wrap items-center justify-center gap-2 md:justify-between">
+                        <div class="flex items-center gap-2">
+                            <label for="brush-color" class="text-sm">색상:</label>
+                            <input type="color" id="brush-color" value="#3b82f6" class="w-8 h-8 rounded border-none cursor-pointer">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label for="brush-size" class="text-sm">굵기:</label>
+                            <input type="range" id="brush-size" min="1" max="20" value="5" class="w-24 md:w-32 cursor-pointer">
+                        </div>
+                        <button type="button" id="clear-canvas" class="bg-red-400 text-white px-3 py-1 rounded-md text-sm hover:bg-red-500 transition">모두 지우기</button>
+                    </div>
+                    <canvas id="drawing-canvas" class="w-full bg-white"></canvas>
+                </div>
+            </div>
+
+            <!-- 저장 버튼 -->
+            <button type="submit" class="w-full bg-blue-400 text-white text-xl font-bold py-3 rounded-lg hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                일기 저장하기 💖
+            </button>
+        </form>
+
+        <!-- 저장된 일기 목록 -->
+        <div class="border-t-2 border-sky-200 pt-6">
+            <h2 class="text-2xl font-bold text-sky-500 text-center mb-4">나의 긍정 기록들 📚</h2>
+            
+            <!-- 검색창 추가 -->
+            <div class="mb-4">
+                <input type="text" id="search-input" placeholder="학번/이름으로 내 일기 검색하기 🔍" class="w-full p-3 border border-sky-200 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition">
+            </div>
+
+            <div id="diary-list" class="space-y-4">
+                <!-- 일기 항목이 여기에 추가됩니다. -->
+                <p id="loading-diaries" class="text-center text-gray-500">일기를 불러오는 중입니다...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 저장 완료 토스트 메시지 -->
+    <div id="save-toast" class="fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl opacity-0 translate-y-10">
+        일기가 저장되었습니다! 🎉
+    </div>
+
+    <script type="module">
+        // Firebase SDK import
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Firebase 설정 ---
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIza...", authDomain: "...", projectId: "..." };
+            
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            let userId; 
+            let unsubscribeDiaries; 
+            let allDiaries = []; // 모든 일기를 저장할 배열 추가
+
+            // --- DOM 요소 가져오기 ---
+            const dateInput = document.getElementById('diary-date');
+            const moodSelector = document.getElementById('mood-selector');
+            const diaryForm = document.getElementById('diary-form');
+            const diaryList = document.getElementById('diary-list');
+            const loadingMessage = document.getElementById('loading-diaries');
+            const saveToast = document.getElementById('save-toast');
+            const searchInput = document.getElementById('search-input'); // 검색창
+
+            // --- 날짜 초기화 ---
+            const today = new Date();
+            dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            // --- 인증 상태 감지 ---
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    loadDiaries();
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication failed: ", error);
+                    }
+                }
+            });
+
+            // --- 일기 불러오기 (실시간) ---
+            function loadDiaries() {
+                if (unsubscribeDiaries) unsubscribeDiaries(); 
+
+                const q = query(collection(db, `artifacts/${appId}/users/${userId}/diaries`), orderBy('createdAt', 'desc'));
+
+                unsubscribeDiaries = onSnapshot(q, (snapshot) => {
+                    loadingMessage.style.display = 'none';
+                    allDiaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); // 원본 데이터 저장
+                    displayDiaries(allDiaries); // 전체 일기 표시
+                }, (error) => {
+                    console.error("Error loading diaries: ", error);
+                    loadingMessage.innerText = '일기를 불러오는 데 실패했습니다.';
+                });
+            }
+            
+            // --- 화면에 일기 목록 표시하기 ---
+            function displayDiaries(diariesToDisplay) {
+                diaryList.innerHTML = ''; // 목록 초기화
+                if (diariesToDisplay.length === 0) {
+                     if (searchInput.value) {
+                         diaryList.innerHTML = '<p class="text-center text-gray-500">검색 결과가 없어요 😥</p>';
+                     } else {
+                         diaryList.innerHTML = '<p class="text-center text-gray-500">아직 작성된 일기가 없어요. 첫 긍정 일기를 남겨보세요!</p>';
+                     }
+                    return;
+                }
+                diariesToDisplay.forEach(diary => {
+                    renderDiary(diary, diary.id);
+                });
+            }
+
+
+            // --- 일기 항목 렌더링 ---
+            function renderDiary(data, id) {
+                const diaryElement = document.createElement('div');
+                diaryElement.className = 'bg-sky-50 p-4 rounded-lg shadow space-y-3 relative';
+                diaryElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-sky-600 text-lg">${data.studentInfo}</p>
+                            <p class="text-sm text-gray-500">${data.date}</p>
+                        </div>
+                        <p class="text-4xl">${data.mood}</p>
+                    </div>
+                    <p class="text-gray-700 whitespace-pre-wrap">${data.content}</p>
+                    ${data.drawing ? `<div class="border-t pt-3 mt-3"><p class="font-semibold text-sm mb-1">오늘의 그림🎨:</p><img src="${data.drawing}" alt="drawing" class="rounded-md border border-sky-200 w-full"></div>` : ''}
+                    <button data-id="${id}" class="delete-btn absolute top-2 right-2 text-red-400 hover:text-red-600 text-2xl font-bold">&times;</button>
+                `;
+                diaryList.appendChild(diaryElement);
+            }
+
+            // --- 검색 기능 ---
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (!searchTerm) {
+                    displayDiaries(allDiaries);
+                    return;
+                }
+                const filteredDiaries = allDiaries.filter(diary => 
+                    diary.studentInfo.toLowerCase().includes(searchTerm)
+                );
+                displayDiaries(filteredDiaries);
+            });
+
+            // --- 일기 삭제 ---
+            diaryList.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const docId = e.target.dataset.id;
+                    // confirm() can be disruptive, so we'll use a custom confirmation if needed, for now we just delete.
+                    // For a better UX, a custom modal would be ideal instead of confirm().
+                    try {
+                        await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/diaries`, docId));
+                    } catch (error) {
+                        console.error("Error deleting document: ", error);
+                        alert('삭제에 실패했습니다.');
+                    }
+                }
+            });
+
+            // --- 기분 선택 ---
+            let selectedMood = null;
+            moodSelector.addEventListener('click', (e) => {
+                const selected = e.target.closest('.mood-icon');
+                if (!selected) return;
+                
+                moodSelector.querySelectorAll('.mood-icon').forEach(icon => icon.classList.remove('selected'));
+                selected.classList.add('selected');
+                selectedMood = selected.dataset.mood;
+            });
+
+            // --- 그림판 기능 ---
+            const canvas = document.getElementById('drawing-canvas');
+            const ctx = canvas.getContext('2d');
+            const colorPicker = document.getElementById('brush-color');
+            const sizeSlider = document.getElementById('brush-size');
+            const clearButton = document.getElementById('clear-canvas');
+
+            let isDrawing = false, lastX = 0, lastY = 0;
+
+            function resizeCanvas() {
+                const parentWidth = canvas.parentElement.clientWidth;
+                if (canvas.width !== parentWidth) {
+                    canvas.width = parentWidth;
+                    canvas.height = parentWidth * 0.6;
+                }
+            }
+            
+            function getEventPosition(e) {
+                const rect = canvas.getBoundingClientRect();
+                const event = e.touches ? e.touches[0] : e;
+                return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+            }
+
+            function startDrawing(e) {
+                isDrawing = true;
+                const pos = getEventPosition(e);
+                [lastX, lastY] = [pos.x, pos.y];
+            }
+
+            function draw(e) {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const pos = getEventPosition(e);
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.strokeStyle = colorPicker.value;
+                ctx.lineWidth = sizeSlider.value;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+                [lastX, lastY] = [pos.x, pos.y];
+            }
+            
+            function stopDrawing() { isDrawing = false; }
+            
+            ['mousedown', 'touchstart'].forEach(evt => canvas.addEventListener(evt, startDrawing));
+            ['mousemove', 'touchmove'].forEach(evt => canvas.addEventListener(evt, draw));
+            ['mouseup', 'mouseout', 'touchend'].forEach(evt => canvas.addEventListener(evt, stopDrawing));
+
+            clearButton.addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // --- 폼 제출 (일기 저장) ---
+            diaryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!userId) {
+                    alert("사용자 정보가 없어 저장할 수 없습니다.");
+                    return;
+                }
+                if (!selectedMood) {
+                    alert("오늘의 기분을 선택해주세요!");
+                    return;
+                }
+
+                const diaryData = {
+                    studentInfo: document.getElementById('student-info').value,
+                    date: dateInput.value,
+                    mood: selectedMood,
+                    content: document.getElementById('diary-content').value,
+                    drawing: canvas.toDataURL('image/png'), 
+                    createdAt: serverTimestamp() 
+                };
+
+                try {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${userId}/diaries`), diaryData);
+                    showSaveToast();
+                    diaryForm.reset(); 
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    moodSelector.querySelectorAll('.mood-icon').forEach(icon => icon.classList.remove('selected'));
+                    selectedMood = null;
+                    dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    alert("일기 저장에 실패했습니다.");
+                }
+            });
+            
+            function showSaveToast() {
+                saveToast.classList.remove('opacity-0', 'translate-y-10');
+                setTimeout(() => {
+                    saveToast.classList.add('opacity-0', 'translate-y-10');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
+
